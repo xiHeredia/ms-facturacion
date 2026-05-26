@@ -40,6 +40,7 @@ public class FacturasController : ControllerBase
     }
 
     [HttpPost]
+    [AllowAnonymous]
     public async Task<IActionResult> Crear([FromBody] CrearFacturaRequest request, CancellationToken cancellationToken)
     {
         var result = await _facturaService.CrearAsync(request, cancellationToken);
