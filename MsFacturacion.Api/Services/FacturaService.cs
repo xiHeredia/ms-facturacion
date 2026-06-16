@@ -76,12 +76,15 @@ public class FacturaService
     {
         ValidateCrear(request);
 
-        var exists = await _context.Facturas.AnyAsync(
+        var existing = await _context.Facturas
+            .AsNoTracking()
+            .Include(x => x.DatosFacturacion)
+            .FirstOrDefaultAsync(
             x => x.RevGuid == request.ReservaGuid,
             cancellationToken);
 
-        if (exists)
-            throw new ValidationException("Ya existe una factura para esa reserva.");
+        if (existing is not null)
+            return ToResponse(existing);
 
         var factura = new FacturaEntity
         {
@@ -106,8 +109,23 @@ public class FacturaService
             }
         };
 
-        await _context.Facturas.AddAsync(factura, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.Facturas.AddAsync(factura, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            var saved = await _context.Facturas
+                .AsNoTracking()
+                .Include(x => x.DatosFacturacion)
+                .FirstOrDefaultAsync(x => x.RevGuid == request.ReservaGuid, cancellationToken);
+
+            if (saved is not null)
+                return ToResponse(saved);
+
+            throw;
+        }
 
         return ToResponse(factura);
     }

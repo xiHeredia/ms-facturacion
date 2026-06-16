@@ -1,4 +1,5 @@
 using Atracciones.Shared.Extensions;
+using Atracciones.Shared.Messaging;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using MsFacturacion.Api.Data;
@@ -16,7 +17,9 @@ builder.WebHost.ConfigureKestrel(options =>
 builder.Services.AddAtraccionesApiDefaults(builder.Configuration, "ms-facturacion");
 builder.Services.AddDbContext<FacturacionDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("FacturacionDb")));
+builder.Services.AddRabbitMqEventBus(builder.Configuration);
 builder.Services.AddScoped<FacturaService>();
+builder.Services.AddHostedService<ReservasPagadasEventConsumer>();
 builder.Services.AddGrpc();
 
 var app = builder.Build();
