@@ -57,15 +57,7 @@ public class ReservasPagadasEventConsumer : BackgroundService
 
     private void StartConsumer()
     {
-        var factory = new ConnectionFactory
-        {
-            HostName = _options.HostName,
-            Port = _options.Port,
-            UserName = _options.UserName,
-            Password = _options.Password,
-            VirtualHost = _options.VirtualHost,
-            DispatchConsumersAsync = true
-        };
+        var factory = CreateConnectionFactory();
 
         _connection = factory.CreateConnection();
         _channel = _connection.CreateModel();
@@ -91,6 +83,36 @@ public class ReservasPagadasEventConsumer : BackgroundService
 
         _channel.BasicConsume(QueueName, autoAck: false, consumer);
         _logger.LogInformation("Consumidor RabbitMQ activo en cola {QueueName}.", QueueName);
+    }
+
+    private ConnectionFactory CreateConnectionFactory()
+    {
+        if (!string.IsNullOrWhiteSpace(_options.Uri))
+        {
+            return new ConnectionFactory
+            {
+                Uri = new Uri(_options.Uri),
+                DispatchConsumersAsync = true
+            };
+        }
+
+        var factory = new ConnectionFactory
+        {
+            HostName = _options.HostName,
+            Port = _options.Port,
+            UserName = _options.UserName,
+            Password = _options.Password,
+            VirtualHost = _options.VirtualHost,
+            DispatchConsumersAsync = true
+        };
+
+        if (_options.UseSsl)
+        {
+            factory.Ssl.Enabled = true;
+            factory.Ssl.ServerName = _options.HostName;
+        }
+
+        return factory;
     }
 
     private async Task ProcessAsync(byte[] body, string? correlationId)
